@@ -1,0 +1,58 @@
+---
+import Paper from '../layouts/Paper.astro';
+import Referencia from '../components/Referencia.astro';
+import { otro, ruta, t, type Lang } from '../i18n/ui';
+import { cargarEntradas, ordenProximas, type Entrada } from '../lib/entradas';
+import { curso } from '../lib/fechas';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const u = t(lang);
+
+const entradas = await cargarEntradas();
+const proximas = ordenProximas(entradas);
+
+// Todas las entradas agrupadas por curso, de lo más reciente a lo más antiguo.
+// Las próximas también están ahí, ocultas: aparecen solas al día siguiente de celebrarse.
+const porCurso = new Map<string, Entrada[]>();
+for (const e of [...entradas].reverse()) {
+  const c = curso(e.es.data.fecha);
+  porCurso.set(c, [...(porCurso.get(c) ?? []), e]);
+}
+---
+
+<Paper lang={lang} titulo={u.actividades} alterno={ruta(otro(lang), 'actividades')}>
+  <div class="titular de-ficha">
+    <h1>{u.actividades}</h1>
+  </div>
+
+  {
+    proximas.length > 0 && (
+      <section data-grupo>
+        <h2 class="sin-num">{u.proximamente}</h2>
+        <ol class="refs">
+          {proximas.map((e) => (
+            <Referencia entrada={e} lang={lang} modo="proxima" />
+          ))}
+        </ol>
+      </section>
+    )
+  }
+
+  {
+    [...porCurso].map(([nombre, lista]) => (
+      <section data-grupo hidden={lista.every((e) => e.proxima)}>
+        <h2 class="sin-num">
+          {u.curso} {nombre}
+        </h2>
+        <ol class="refs">
+          {lista.map((e) => (
+            <Referencia entrada={e} lang={lang} modo="archivo" />
+          ))}
+        </ol>
+      </section>
+    ))
+  }
+</Paper>

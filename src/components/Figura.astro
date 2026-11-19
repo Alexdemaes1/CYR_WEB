@@ -1,0 +1,78 @@
+---
+import { Image } from 'astro:assets';
+import Lorenz from './Lorenz.astro';
+import { t, type Lang } from '../i18n/ui';
+import { fotosDe, textos, type Entrada } from '../lib/entradas';
+import { x0DeFecha } from '../lib/lorenz';
+
+// La figura de una entrada: sus fotos si las hay; si no, un atractor de Lorenz
+// calculado con su fecha, y el pie lo dice tal cual.
+interface Props {
+  entrada: Entrada;
+  lang: Lang;
+  numero?: number;
+}
+const { entrada, lang, numero = 1 } = Astro.props;
+const u = t(lang);
+const tx = textos(entrada, lang);
+const fotos = fotosDe(entrada.slug);
+const [principal, ...resto] = fotos;
+const x0 = x0DeFecha(entrada.es.data.fecha);
+const x0Texto = x0.toFixed(2).replace('.', lang === 'es' ? ',' : '.');
+const letra = (i: number) => `(${String.fromCharCode(97 + i)})`;
+const pie = (nombre: string) => tx.pies[nombre] ?? '';
+// Texto alternativo: el pie si lo hay; si no, uno genérico pero nunca vacío.
+const alt = (nombre: string, i: number) => pie(nombre) || `${u.foto} ${i + 1}: ${tx.titulo}`;
+// "Todavía no ha pasado" solo es verdad para lo que sigue en pie.
+const pendiente = entrada.proxima && !entrada.es.data.cancelado;
+---
+
+<figure class="figura">
+  {
+    principal ? (
+      <>
+        <Image src={principal.imagen} alt={alt(principal.nombre, 0)} widths={[480, 800, 1200]} sizes="(min-width: 60rem) 30rem, 100vw" />
+        {resto.length > 0 && (
+          <div class="subfiguras">
+            {resto.map((foto, i) => (
+              <figure>
+                <Image src={foto.imagen} alt={alt(foto.nombre, i + 1)} widths={[320, 640]} sizes="(min-width: 60rem) 15rem, 50vw" loading="lazy" />
+                <figcaption>
+                  {letra(i + 1)} {pie(foto.nombre)}
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        )}
+        <figcaption>
+          <b>
+            {u.figura} {numero}.
+          </b>{' '}
+          {resto.length > 0 && `${letra(0)} `}
+          {pie(principal.nombre) || tx.titulo}
+        </figcaption>
+      </>
+    ) : (
+      <>
+        <Lorenz x0={x0} alt={u.lorenzAlt} />
+        <figcaption>
+          <b>
+            {u.figura} {numero}.
+          </b>{' '}
+          {pendiente ? (
+            <>
+              <span data-hasta={entrada.hasta}>{u.sinFotoProxima}</span>
+              <span data-desde={entrada.hasta} hidden>
+                {u.sinFotoPasada}
+              </span>
+            </>
+          ) : (
+            u.sinFotoPasada
+          )}{' '}
+          {u.lorenz} <i>x</i>
+          <sub>0</sub> = {x0Texto}: {u.lorenzFecha}.
+        </figcaption>
+      </>
+    )
+  }
+</figure>

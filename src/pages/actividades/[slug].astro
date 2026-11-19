@@ -1,0 +1,12 @@
+---
+import Ficha from '../../vistas/Ficha.astro';
+import { cargarEntradas, type Entrada } from '../../lib/entradas';
+
+export async function getStaticPaths() {
+  return (await cargarEntradas()).map((entrada) => ({ params: { slug: entrada.slug }, props: { entrada } }));
+}
+
+const { entrada } = Astro.props as { entrada: Entrada };
+---
+
+<Ficha entrada={entrada} lang="es" />

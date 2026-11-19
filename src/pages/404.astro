@@ -1,0 +1,20 @@
+---
+import Paper from '../layouts/Paper.astro';
+import { ruta, t } from '../i18n/ui';
+
+const es = t('es');
+const en = t('en');
+---
+
+<Paper lang="es" titulo={es.noEncontrado} alterno={ruta('en', 'inicio')}>
+  <div class="titular de-ficha">
+    <h1>{es.noEncontrado}</h1>
+  </div>
+  <p style="margin-top:1.4rem">{es.noEncontradoTexto}</p>
+  <p lang="en"><i>{en.noEncontradoTexto}</i></p>
+  <p class="enlaces">
+    <a href={ruta('es', 'inicio')}>{es.inicio}</a>
+    <a href={ruta('es', 'actividades')}>{es.actividades}</a>
+    <a href={ruta('en', 'inicio')} lang="en">{en.inicio}</a>
+  </p>
+</Paper>

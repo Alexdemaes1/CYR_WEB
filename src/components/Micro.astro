@@ -1,0 +1,14 @@
+---
+// Micrófono del logo del club, redibujado en línea. Sustituir por el original cuando el club lo aporte.
+interface Props {
+  class?: string;
+}
+const { class: clase } = Astro.props;
+---
+
+<svg class={clase} viewBox="0 0 32 40" fill="none" stroke="#ff3228" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <rect x="9" y="2" width="14" height="22" rx="7"></rect>
+  <path d="M9 9h8M9 13h8M9 17h8"></path>
+  <path d="M5 17v3a11 11 0 0 0 22 0v-3"></path>
+  <path d="M16 31v6M9.5 37h13"></path>
+</svg>

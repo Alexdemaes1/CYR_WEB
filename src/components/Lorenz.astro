@@ -1,0 +1,27 @@
+---
+import { CAJA, EJES, escalaX, escalaZ, trazoLorenz } from '../lib/lorenz';
+
+interface Props {
+  x0: number;
+  alt: string;
+}
+const { x0, alt } = Astro.props;
+const d = trazoLorenz(x0);
+const marca = 5;
+const etiqueta = (n: number) => String(n).replace('-', '−');
+---
+
+<svg class="grafica" viewBox={`0 0 ${CAJA.ancho} ${CAJA.alto}`} role="img" aria-label={alt}>
+  <g fill="none" stroke="#1e1e1e" stroke-width="1">
+    <rect x={CAJA.izq} y={CAJA.arriba} width={CAJA.der - CAJA.izq} height={CAJA.abajo - CAJA.arriba}></rect>
+    {EJES.marcasX.map((x) => <path d={`M${escalaX(x)} ${CAJA.abajo}v${-marca}M${escalaX(x)} ${CAJA.arriba}v${marca}`} />)}
+    {EJES.marcasZ.map((z) => <path d={`M${CAJA.izq} ${escalaZ(z)}h${marca}M${CAJA.der} ${escalaZ(z)}h${-marca}`} />)}
+  </g>
+  <g aria-hidden="true">
+    {EJES.marcasX.map((x) => <text x={escalaX(x)} y={CAJA.abajo + 16} text-anchor="middle">{etiqueta(x)}</text>)}
+    {EJES.marcasZ.map((z) => <text x={CAJA.izq - 6} y={escalaZ(z) + 4.5} text-anchor="end">{etiqueta(z)}</text>)}
+    <text x={(CAJA.izq + CAJA.der) / 2} y={CAJA.alto - 5} text-anchor="middle" font-style="italic">x</text>
+    <text x="7" y={(CAJA.arriba + CAJA.abajo) / 2 + 4.5} text-anchor="middle" font-style="italic">z</text>
+  </g>
+  <path d={d} fill="none" stroke="#ff3228" stroke-width="0.9" stroke-linejoin="round" stroke-linecap="round"></path>
+</svg>

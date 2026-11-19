@@ -1,0 +1,148 @@
+---
+import '../styles/paper.css';
+import Micro from '../components/Micro.astro';
+import { CLUB, INSTAGRAM, TEXTO_CLUB } from '../config';
+import { otro, ruta, t, type Lang } from '../i18n/ui';
+import { fechaRevision } from '../lib/fechas';
+
+interface Props {
+  lang: Lang;
+  /** Título de la página; sin él se usa el nombre del club. */
+  titulo?: string;
+  descripcion?: string;
+  /** Ruta de esta misma página en el otro idioma. */
+  alterno: string;
+  /** Portada: bloque de título completo en vez de encabezado de página. */
+  portada?: boolean;
+  ancha?: boolean;
+  /** Tipo Open Graph: 'article' en las fichas. */
+  tipo?: 'website' | 'article';
+}
+
+const { lang, titulo, descripcion, alterno, portada = false, ancha = false, tipo = 'website' } = Astro.props;
+const u = t(lang);
+const tituloPagina = titulo ? `${titulo} · ${CLUB.nombre}` : `${CLUB.nombre} · ${CLUB.afiliacion}`;
+const desc = descripcion ?? u.descripcion;
+const canonica = new URL(Astro.url.pathname, Astro.site).href;
+const alterna = new URL(alterno, Astro.site).href;
+const imagen = new URL('/og.png', Astro.site).href;
+const hayClub = TEXTO_CLUB[lang].trim() !== '';
+const rutaClub = lang === 'es' ? '/club/' : '/en/club/';
+---
+
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{tituloPagina}</title>
+    <meta name="description" content={desc} />
+    <link rel="canonical" href={canonica} />
+    <link rel="alternate" hreflang={lang} href={canonica} />
+    <link rel="alternate" hreflang={otro(lang)} href={alterna} />
+    <meta property="og:type" content={tipo} />
+    <meta property="og:site_name" content={CLUB.nombre} />
+    <meta property="og:title" content={titulo ?? CLUB.nombre} />
+    <meta property="og:description" content={desc} />
+    <meta property="og:url" content={canonica} />
+    <meta property="og:image" content={imagen} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content={lang === 'es' ? 'es_ES' : 'en_GB'} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="theme-color" content="#fffefa" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preload" href="/fonts/cmu-serif-roman.woff2" as="font" type="font/woff2" crossorigin />
+  </head>
+  <body>
+    <div class:list={['hoja', { ancha }]}>
+      {
+        portada ? (
+          <header class="titular">
+            <Micro class="micro" />
+            <h1>{CLUB.nombre}</h1>
+            <p class="afiliacion">{CLUB.afiliacion}</p>
+            <p class="fecha">
+              {u.revisado} {fechaRevision(lang)}
+            </p>
+            <nav class="enlaces" aria-label={lang === 'es' ? 'Secciones' : 'Sections'}>
+              <a href={ruta(lang, 'actividades')}>{u.actividades}</a>
+              {hayClub && <a href={rutaClub}>{u.club}</a>}
+              <a href={ruta(lang, 'avisos')}>{u.avisos}</a>
+              <a href={alterno} lang={otro(lang)} hreflang={otro(lang)}>
+                {u.otroIdioma}
+              </a>
+            </nav>
+          </header>
+        ) : (
+          <header class="encabezado">
+            <a class="marca" href={ruta(lang, 'inicio')}>
+              <Micro />
+              {CLUB.nombre}
+            </a>
+            <nav class="enlaces" aria-label={lang === 'es' ? 'Secciones' : 'Sections'}>
+              <a href={ruta(lang, 'actividades')}>{u.actividades}</a>
+              {hayClub && <a href={rutaClub}>{u.club}</a>}
+              <a href={ruta(lang, 'avisos')}>{u.avisos}</a>
+              <a href={alterno} lang={otro(lang)} hreflang={otro(lang)}>
+                {u.otroIdioma}
+              </a>
+            </nav>
+          </header>
+        )
+      }
+
+      <main class="doc">
+        <slot />
+      </main>
+
+      <footer class="pie">
+        <div class="fila">
+          <p>{u.pieClub}</p>
+          <a class="ue" href="https://universidadeuropea.com/" rel="noopener">
+            <img src="/logos/universidad-europea.svg" alt="Universidad Europea" width="378" height="104" loading="lazy" />
+          </a>
+        </div>
+        <p class="enlaces">
+          <a href={INSTAGRAM} rel="noopener">Instagram</a>
+          <a href={ruta(lang, 'avisos')}>{u.avisosWhatsapp}</a>
+          <a href={ruta(lang, 'legal')}>{u.avisoLegal}</a>
+        </p>
+        <p class="pagina" aria-hidden="true">1</p>
+      </footer>
+    </div>
+
+    <script is:inline define:vars={{ textos: { hoy: u.hoy, manana: u.manana, enDias: u.enDias } }}>
+      // La web es estática: esto corrige lo que depende del día de hoy sin reconstruirla.
+      //   data-hasta="AAAA-MM-DD"  visible hasta ese día incluido
+      //   data-desde="AAAA-MM-DD"  visible a partir del día siguiente
+      //     (los dos juntos forman una ventana; misma regla que fueraDeVentana en lib/fechas.ts)
+      //   data-grupo               sección que se oculta si no le queda ningún [data-item] visible
+      //   data-sin-proximos        se ve solo si no queda ningún [data-principal] visible
+      //   data-dia="AAAA-MM-DD"    se le añade "· hoy", "· mañana" o "· en N días"
+      (function () {
+        var hoy = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+        document.querySelectorAll('[data-desde], [data-hasta]').forEach(function (el) {
+          var d = el.dataset;
+          el.hidden = !((!d.desde || d.desde < hoy) && (!d.hasta || d.hasta >= hoy));
+        });
+        document.querySelectorAll('[data-grupo]').forEach(function (grupo) {
+          grupo.hidden = !grupo.querySelector('[data-item]:not([hidden])');
+        });
+        var hayPrincipal = !!document.querySelector('[data-principal]:not([hidden])');
+        document.querySelectorAll('[data-sin-proximos]').forEach(function (el) {
+          el.hidden = hayPrincipal;
+        });
+        var dia = function (iso) {
+          var p = iso.split('-');
+          return Date.UTC(+p[0], p[1] - 1, +p[2]) / 86400000;
+        };
+        document.querySelectorAll('[data-dia]').forEach(function (el) {
+          var faltan = dia(el.dataset.dia) - dia(hoy);
+          if (faltan < 0 || faltan > 6) return;
+          el.textContent = ' · ' + (faltan === 0 ? textos.hoy : faltan === 1 ? textos.manana : textos.enDias.replace('{n}', faltan));
+        });
+      })();
+    </script>
+  </body>
+</html>

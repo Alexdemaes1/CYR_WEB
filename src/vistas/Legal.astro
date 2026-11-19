@@ -1,0 +1,57 @@
+---
+import Paper from '../layouts/Paper.astro';
+import { CLUB, INSTAGRAM } from '../config';
+import { otro, ruta, t, type Lang } from '../i18n/ui';
+
+// Solo afirma cosas ciertas de la web tal como está hecha. Si se añade analítica,
+// formularios o cualquier cosa que trate datos, hay que actualizar este texto.
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const u = t(lang);
+---
+
+<Paper lang={lang} titulo={u.avisoLegal} alterno={ruta(otro(lang), 'legal')}>
+  <div class="titular de-ficha">
+    <h1>{u.avisoLegal}</h1>
+  </div>
+
+  {
+    lang === 'es' ? (
+      <div class="prosa">
+        <h2>Quién hace esta web</h2>
+        <p>
+          Esta web la hace y la mantiene el {CLUB.nombre}, un club de estudiantes de la {CLUB.afiliacion}. El contacto del club es su
+          cuenta de <a href={INSTAGRAM}>Instagram</a>.
+        </p>
+        <h2>Datos personales y cookies</h2>
+        <p>Esta web no usa cookies ni tiene formularios, y el club no recoge datos personales a través de ella.</p>
+        <h2>WhatsApp e Instagram</h2>
+        <p>
+          Los botones de avisos abren WhatsApp y el enlace del pie abre Instagram. Son servicios de Meta, ajenos a esta web, con sus propias
+          condiciones. Al entrar en un grupo de WhatsApp, el resto de miembros puede ver tu número de teléfono; en un canal, no.
+        </p>
+        <h2>Marca</h2>
+        <p>El nombre y el logotipo de Universidad Europea pertenecen a la universidad y se usan aquí con su permiso.</p>
+      </div>
+    ) : (
+      <div class="prosa">
+        <h2>Who makes this website</h2>
+        <p>
+          This website is made and maintained by {CLUB.nombre}, a student club at {CLUB.afiliacion}. The club can be reached through its{' '}
+          <a href={INSTAGRAM}>Instagram</a> account.
+        </p>
+        <h2>Personal data and cookies</h2>
+        <p>This website uses no cookies and has no forms, and the club does not collect personal data through it.</p>
+        <h2>WhatsApp and Instagram</h2>
+        <p>
+          The update buttons open WhatsApp and the footer link opens Instagram. Both are Meta services, separate from this website, with
+          their own terms. When you join a WhatsApp group, other members can see your phone number; in a channel they cannot.
+        </p>
+        <h2>Trademark</h2>
+        <p>The Universidad Europea name and logo belong to the university and are used here with its permission.</p>
+      </div>
+    )
+  }
+</Paper>

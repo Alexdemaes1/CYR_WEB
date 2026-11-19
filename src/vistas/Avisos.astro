@@ -1,0 +1,35 @@
+---
+import Paper from '../layouts/Paper.astro';
+import QR from '../components/QR.astro';
+import { WHATSAPP } from '../config';
+import { otro, ruta, t, type Lang } from '../i18n/ui';
+
+// Página de avisos: destino de la bio de Instagram (/whatsapp/) y del QR de los carteles (/cartel/).
+// Es una página real, no una redirección: funciona aunque el navegador no deje abrir WhatsApp solo.
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const u = t(lang);
+---
+
+<Paper lang={lang} titulo={u.avisosWhatsapp} alterno={ruta(otro(lang), 'avisos')}>
+  <div class="titular de-ficha">
+    <h1>{u.avisosWhatsapp}</h1>
+  </div>
+
+  <p style="margin:1.4rem 0 1rem">{WHATSAPP.tipo === 'grupo' ? u.notaGrupo : u.notaCanal}</p>
+
+  <a class="boton" href={WHATSAPP.url} rel="noopener">{u.recibirAvisos}</a>
+
+  <figure class="figura">
+    <QR url={WHATSAPP.url} alt={u.avisosWhatsapp} />
+    <figcaption>
+      <b>{u.figura} 1.</b>{' '}
+      {u.escanea}
+    </figcaption>
+  </figure>
+
+  <p style="margin-top:1.6rem">{u.enlaceDirecto}</p>
+  <p class="directo">{WHATSAPP.url}</p>
+</Paper>

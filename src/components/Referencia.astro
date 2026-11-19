@@ -1,0 +1,33 @@
+---
+import { rutaFicha, t, type Lang } from '../i18n/ui';
+import { textos, type Entrada } from '../lib/entradas';
+import { fechaCorta, fueraDeVentana } from '../lib/fechas';
+
+// Una fila del archivo, con forma de referencia bibliográfica: [n] Título. Tipo, fecha.
+//
+// modo 'proxima': fila de una lista de próximas; deja de verse cuando pasa su fecha.
+// modo 'archivo': fila del archivo; si la entrada aún es próxima sale oculta y aparece
+//   sola al día siguiente de celebrarse, sin tener que recompilar la web.
+interface Props {
+  entrada: Entrada;
+  lang: Lang;
+  modo: 'proxima' | 'archivo';
+  /** Solo en modo 'proxima': deja de verse antes de su propia fecha (ver Portada.astro). */
+  hasta?: string;
+}
+const { entrada, lang, modo, hasta } = Astro.props;
+const u = t(lang);
+const tx = textos(entrada, lang);
+const d = entrada.es.data;
+
+const desde = modo === 'archivo' && entrada.proxima ? entrada.hasta : undefined;
+const fin = modo === 'proxima' ? (hasta ?? entrada.hasta) : undefined;
+const conHora = modo === 'proxima' && entrada.exacta && d.hora;
+---
+
+<li data-item data-desde={desde} data-hasta={fin} hidden={fueraDeVentana(desde, fin)}>
+  <span class="num">[{entrada.numero}]</span>
+  <span>
+    <a href={rutaFicha(lang, entrada.slug)} lang={tx.idioma('titulo')}>{d.cancelado ? <s>{tx.titulo}</s> : tx.titulo}</a>. <i>{u.tipos[d.tipo]}</i>, {fechaCorta(d.fecha, d.precision, lang)}{conHora && `, ${d.hora}`}.{d.cancelado && ` ${u.cancelado}.`}
+  </span>
+</li>

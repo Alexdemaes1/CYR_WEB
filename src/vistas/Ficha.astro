@@ -1,0 +1,135 @@
+---
+import { render } from 'astro:content';
+import Paper from '../layouts/Paper.astro';
+import Figura from '../components/Figura.astro';
+import { WHATSAPP } from '../config';
+import { otro, rutaFicha, rutaIcs, t, type Lang } from '../i18n/ui';
+import { bibtex } from '../lib/cita';
+import { textos, type Entrada } from '../lib/entradas';
+import { fechaCorta, fechaLarga } from '../lib/fechas';
+
+interface Props {
+  entrada: Entrada;
+  lang: Lang;
+}
+const { entrada, lang } = Astro.props;
+const u = t(lang);
+const tx = textos(entrada, lang);
+const d = entrada.es.data;
+
+const soloEspanol = lang === 'en' && !entrada.en;
+const { Content } = await render(lang === 'en' && entrada.en ? entrada.en : entrada.es);
+
+const url = new URL(rutaFicha(lang, entrada.slug), Astro.site).href;
+const horario = entrada.exacta && d.hora ? `, ${d.hora}${d.fin ? `–${d.fin}` : ''}` : '';
+const cuando = `${fechaLarga(d.fecha, d.precision, lang)}${horario}`;
+const descripcion = [`${fechaCorta(d.fecha, d.precision, lang)}${horario}`, tx.lugar, tx.resumen].filter(Boolean).join(' · ');
+// Con botón y calendario solo lo que sigue en pie. La nota 1 acompaña al botón de WhatsApp.
+const abierta = entrada.proxima && !d.cancelado;
+const conNota = abierta && !d.inscripcion;
+---
+
+<Paper lang={lang} titulo={tx.titulo} descripcion={descripcion} alterno={rutaFicha(otro(lang), entrada.slug)} tipo="article">
+  <div class="titular de-ficha">
+    <h1 lang={tx.idioma('titulo')}>{d.cancelado ? <s>{tx.titulo}</s> : tx.titulo}</h1>
+    <p class="afiliacion">
+      {u.tipos[d.tipo]}
+      {d.cancelado && ` · ${u.cancelado}`}
+      {entrada.exacta && !d.cancelado && <span data-dia={entrada.dia} />}
+    </p>
+  </div>
+
+  {
+    tx.aviso && (
+      <p class="aviso" lang={tx.idioma('aviso')}>
+        <b>{u.aviso}</b> {tx.aviso}
+      </p>
+    )
+  }
+
+  <p class="resumen">
+    <b>{u.resumen}</b>{' '}
+    <span lang={tx.idioma('resumen')}>{tx.resumen}</span>
+  </p>
+
+  <table class="datos" style="margin-top:1.2rem">
+    <tr>
+      <th scope="row">{u.cuando}</th>
+      <td>{cuando}</td>
+    </tr>
+    {
+      tx.lugar && (
+        <tr>
+          <th scope="row">{u.donde}</th>
+          <td lang={tx.idioma('lugar')}>{tx.lugar}</td>
+        </tr>
+      )
+    }
+    {
+      tx.para_quien && (
+        <tr>
+          <th scope="row">{u.paraQuien}</th>
+          <td lang={tx.idioma('para_quien')}>{tx.para_quien}</td>
+        </tr>
+      )
+    }
+    {
+      tx.hay_que && (
+        <tr>
+          <th scope="row">{u.hayQue}</th>
+          <td lang={tx.idioma('hay_que')}>{tx.hay_que}</td>
+        </tr>
+      )
+    }
+  </table>
+
+  {
+    abierta && (
+      <div data-hasta={entrada.hasta}>
+        {d.inscripcion ? (
+          <a class="boton" href={d.inscripcion} rel="noopener">
+            {u.apuntarme}
+          </a>
+        ) : (
+          <a class="boton" href={WHATSAPP.url} rel="noopener" aria-describedby="nota-1">
+            {u.recibirAvisos}
+            <sup aria-hidden="true">1</sup>
+          </a>
+        )}
+        <p class="enlaces">
+          {entrada.exacta && <a href={rutaIcs(lang, entrada.slug)}>{u.calendario}</a>}
+          {d.inscripcion && (
+            <a href={WHATSAPP.url} rel="noopener">
+              {u.avisosWhatsapp}
+            </a>
+          )}
+        </p>
+      </div>
+    )
+  }
+
+  <div class="prosa" lang={soloEspanol ? 'es' : undefined}>
+    {
+      soloEspanol && (
+        <p style="margin-top:1.2rem" lang="en">
+          <i>{u.soloEspanol}</i>
+        </p>
+      )
+    }
+    <Content />
+  </div>
+
+  <Figura entrada={entrada} lang={lang} />
+
+  <h2 class="sin-num">{u.comoCitar}</h2>
+  <pre class="bib">{bibtex(entrada, tx.titulo, url)}</pre>
+
+  {
+    conNota && (
+      <p class="notas" id="nota-1" data-hasta={entrada.hasta}>
+        <sup aria-hidden="true">1</sup>{' '}
+        {WHATSAPP.tipo === 'grupo' ? u.notaGrupo : u.notaCanal}
+      </p>
+    )
+  }
+</Paper>

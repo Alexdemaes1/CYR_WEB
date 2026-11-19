@@ -1,0 +1,560 @@
+/* La web está compuesta como un artículo científico en LaTeX.
+   Una sola familia (Computer Modern), papel, tinta y un único color: el rojo de la universidad. */
+
+@font-face {
+  font-family: "CMU Serif";
+  src: url("/fonts/cmu-serif-roman.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "CMU Serif";
+  src: url("/fonts/cmu-serif-italic.woff2") format("woff2");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: "CMU Serif";
+  src: url("/fonts/cmu-serif-bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "CMU Typewriter";
+  src: url("/fonts/cmu-typewriter.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --papel: #fffefa;
+  --tinta: #1e1e1e;
+  --rojo: #ff3228; /* rojo de Universidad Europea */
+  --rojo-texto: #da0a00; /* el mismo rojo, oscurecido para texto pequeño */
+  --serif: "CMU Serif", "Latin Modern Roman", "STIX Two Text", Georgia, "Times New Roman", serif;
+  --mono: "CMU Typewriter", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --medida: 36rem;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 106.25%; /* 17 px: Computer Modern es fina y necesita cuerpo */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+@media (min-width: 48rem) {
+  html {
+    font-size: 112.5%; /* 18 px */
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--papel);
+  color: var(--tinta);
+  font-family: var(--serif);
+  line-height: 1.45;
+  text-rendering: optimizeLegibility;
+}
+
+.hoja {
+  max-width: var(--medida);
+  margin: 0 auto;
+  padding: 1rem 1.15rem 1.5rem;
+}
+
+.hoja.ancha {
+  max-width: 66rem;
+}
+
+p,
+ul,
+ol,
+figure,
+table,
+pre {
+  margin: 0;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.oculto-visualmente {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ---- Enlaces: el recuadro rojo que LaTeX (hyperref) pone por defecto ---- */
+
+a {
+  color: inherit;
+  text-decoration: none;
+  border: 1px solid var(--rojo);
+  padding: 0 0.2em;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+a:hover {
+  background: var(--rojo);
+}
+
+a:focus-visible,
+.boton:focus-visible {
+  outline: 2px solid var(--tinta);
+  outline-offset: 2px;
+}
+
+/* Fila de enlaces sueltos: más zona de toque de la que se ve */
+.enlaces {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 0.6rem;
+  margin-top: 0.9rem;
+}
+
+.enlaces a {
+  position: relative;
+  white-space: nowrap;
+}
+
+.enlaces a::after {
+  content: "";
+  position: absolute;
+  inset: -0.6rem -0.25rem;
+}
+
+/* ---- Botón: uno por pantalla ---- */
+
+.boton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0.5rem 1rem;
+  background: var(--rojo);
+  border: 1px solid var(--rojo);
+  color: var(--tinta);
+  font-weight: 700;
+  font-size: 1.05rem;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.boton:hover {
+  background: var(--tinta);
+  border-color: var(--tinta);
+  color: var(--papel);
+}
+
+.boton sup {
+  font-weight: 400;
+  font-size: 0.7em;
+  margin-left: 0.2em;
+}
+
+/* ---- Encabezado de página (páginas interiores) ---- */
+
+.encabezado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  padding-bottom: 0.55rem;
+  border-bottom: 1px solid var(--tinta);
+  font-size: 0.92rem;
+}
+
+.encabezado .marca {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 0;
+  padding: 0;
+  font-style: italic;
+}
+
+.encabezado .marca:hover {
+  background: none;
+  text-decoration: underline;
+  text-decoration-color: var(--rojo);
+}
+
+.encabezado .marca svg {
+  width: 1.05rem;
+  height: 1.3rem;
+  flex: none;
+}
+
+.encabezado .enlaces {
+  margin-top: 0;
+}
+
+/* ---- Bloque de título (\maketitle) ---- */
+
+.titular {
+  text-align: center;
+  margin-top: 0.1rem;
+}
+
+.titular h1 {
+  font-size: clamp(1.5rem, 6.6vw, 2.1rem);
+  font-weight: 400;
+  line-height: 1.12;
+  margin: 0;
+  text-wrap: balance;
+}
+
+.titular .afiliacion {
+  margin-top: 0.3rem;
+}
+
+.titular .fecha {
+  font-style: italic;
+  font-size: 0.9rem;
+  margin-top: 0.1rem;
+}
+
+.titular .enlaces {
+  justify-content: center;
+}
+
+.titular .micro {
+  width: 1.15rem;
+  height: 1.45rem;
+  margin-bottom: 0.2rem;
+}
+
+.titular.de-ficha h1 {
+  font-size: 1.6rem;
+  margin-top: 1.4rem;
+}
+
+.resumen {
+  margin: 1.1rem 1.4rem 0;
+  font-size: 0.93rem;
+}
+
+.aviso {
+  margin-top: 1rem;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--tinta);
+}
+
+/* ---- Secciones numeradas ---- */
+
+.doc {
+  counter-reset: seccion;
+}
+
+.doc h2 {
+  font-size: 1.22rem;
+  line-height: 1.2;
+  margin: 1.45rem 0 0.45rem;
+}
+
+.doc h2:not(.sin-num)::before {
+  counter-increment: seccion;
+  content: counter(seccion);
+  margin-right: 0.9em;
+}
+
+.doc h3 {
+  font-size: 1.05rem;
+  margin: 1.2rem 0 0.4rem;
+}
+
+.subtitulo {
+  font-size: 1.3rem;
+  line-height: 1.15;
+  font-weight: 400;
+  margin: 0;
+  text-wrap: balance;
+}
+
+.subtitulo a {
+  border: 0;
+  padding: 0;
+  text-decoration: underline;
+  text-decoration-color: var(--rojo);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+}
+
+.subtitulo a:hover {
+  background: none;
+  text-decoration-thickness: 2px;
+}
+
+/* ---- Texto de las entradas ---- */
+
+.prosa p {
+  margin-bottom: 0.75rem;
+}
+
+.prosa ul,
+.prosa ol {
+  padding-left: 1.6rem;
+  margin-bottom: 0.75rem;
+}
+
+.prosa li {
+  margin-bottom: 0.3rem;
+}
+
+@media (min-width: 40rem) {
+  .prosa p,
+  .prosa li,
+  .resumen {
+    text-align: justify;
+    hyphens: auto;
+  }
+}
+
+/* ---- Tabla con filetes (booktabs) ---- */
+
+.datos {
+  width: 100%;
+  border-collapse: collapse;
+  border-top: 2px solid var(--tinta);
+  border-bottom: 2px solid var(--tinta);
+  margin: 0.6rem 0 1rem;
+}
+
+.datos th,
+.datos td {
+  padding: 0.38rem 0;
+  vertical-align: top;
+  text-align: left;
+}
+
+.datos tr + tr th,
+.datos tr + tr td {
+  border-top: 1px solid var(--tinta);
+}
+
+.datos th {
+  font-weight: 400;
+  font-style: italic;
+  width: 5.6em;
+  padding-right: 0.8em;
+}
+
+/* ---- Figuras ---- */
+
+.figura {
+  margin: 1.5rem 0 0;
+}
+
+.figura svg,
+.figura img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.figura figcaption {
+  font-size: 0.9rem;
+  text-align: center;
+  margin: 0.45rem 0.6rem 0;
+  text-wrap: pretty;
+}
+
+.subfiguras {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+  margin-top: 0.6rem;
+}
+
+.subfiguras figure figcaption {
+  margin-top: 0.2rem;
+}
+
+.grafica text {
+  font-family: var(--serif);
+  font-size: 14px;
+  fill: var(--tinta);
+}
+
+.qr {
+  width: 9.5rem;
+  max-width: 60%;
+  margin: 0 auto;
+}
+
+.qr svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* ---- Referencias: el archivo de actividades ---- */
+
+.refs {
+  list-style: none;
+  padding: 0;
+}
+
+.refs li {
+  display: grid;
+  grid-template-columns: 2.5em minmax(0, 1fr);
+  padding: 0.32rem 0;
+}
+
+.refs .num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* En pantallas táctiles toda la fila abre la actividad, no solo el recuadro del título */
+@media (pointer: coarse) {
+  .refs li {
+    position: relative;
+    padding: 0.55rem 0;
+  }
+
+  .refs a::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+  }
+}
+
+/* ---- Notas al pie ---- */
+
+.notas {
+  margin-top: 2.2rem;
+  font-size: 0.88rem;
+}
+
+.notas::before {
+  content: "";
+  display: block;
+  width: 34%;
+  border-top: 1px solid var(--tinta);
+  margin-bottom: 0.4rem;
+}
+
+/* ---- Cómo citar ---- */
+
+.bib {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin-top: 0.3rem;
+}
+
+.directo {
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+/* ---- Portada a dos columnas ---- */
+
+.columnas {
+  display: grid;
+  gap: 0 2.6rem;
+}
+
+.solo-escritorio {
+  display: none;
+}
+
+/* 132 px = 33 módulos del QR a 4 px exactos, para que no se emborrone */
+.aviso-qr {
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr);
+  gap: 1.1rem;
+  align-items: center;
+}
+
+.aviso-qr .qr {
+  width: 132px;
+  max-width: none;
+}
+
+@media (min-width: 60rem) {
+  .columnas {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .solo-escritorio {
+    display: block;
+  }
+
+  .hoja.ancha .resumen {
+    max-width: 38rem;
+    margin-inline: auto;
+  }
+}
+
+/* ---- Pie ---- */
+
+.pie {
+  margin-top: 2.4rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--tinta);
+  font-size: 0.88rem;
+}
+
+.pie .fila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem 1.5rem;
+}
+
+.pie .ue {
+  border: 0;
+  padding: 0;
+  flex: none;
+}
+
+.pie .ue:hover {
+  background: none;
+}
+
+.pie .ue img {
+  display: block;
+  height: 2.1rem;
+  width: auto;
+}
+
+.pie .enlaces {
+  margin-top: 0.7rem;
+}
+
+.pagina {
+  text-align: center;
+  font-size: 0.9rem;
+  margin-top: 1.3rem;
+}
+
+@media print {
+  .enlaces,
+  .boton,
+  .pagina {
+    display: none;
+  }
+}

@@ -1,0 +1,150 @@
+---
+import Paper from '../layouts/Paper.astro';
+import Figura from '../components/Figura.astro';
+import QR from '../components/QR.astro';
+import Referencia from '../components/Referencia.astro';
+import { RESUMEN, WHATSAPP } from '../config';
+import { otro, ruta, rutaFicha, rutaIcs, t, type Lang } from '../i18n/ui';
+import { cargarEntradas, ordenProximas, textos } from '../lib/entradas';
+import { fechaLarga, fechaSinAnio } from '../lib/fechas';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const u = t(lang);
+
+const entradas = await cargarEntradas();
+const proximas = ordenProximas(entradas);
+const pasadas = entradas.filter((e) => !e.proxima).reverse();
+const ultima = pasadas[0];
+const resumen = RESUMEN[lang].trim();
+
+// La web no se recompila cada día, así que la portada lleva pintado lo que hará falta
+// cuando pasen las fechas, y el script de Paper.astro enseña en cada momento lo que toca:
+// - cada próxima tiene su bloque de "próxima actividad", visible desde que caduca la anterior
+//   (data-desde) hasta su propio día (data-hasta);
+// - en "También con fecha" cada una se ve mientras no le toque ser la principal;
+// - en "Actividades anteriores" las próximas van ocultas y aparecen al día siguiente de celebrarse.
+const turnos = proximas.map((entrada, i) => ({ entrada, desde: i > 0 ? proximas[i - 1].hasta : undefined }));
+const archivo = [...[...proximas].reverse(), ...pasadas.slice(0, 4)];
+---
+
+<Paper lang={lang} alterno={ruta(otro(lang), 'inicio')} portada ancha>
+  {
+    resumen && (
+      <p class="resumen">
+        <b>{u.resumen}</b> {resumen}
+      </p>
+    )
+  }
+
+  <div class="columnas">
+    <div>
+      <section>
+        <h2>{u.proxima}</h2>
+
+        {
+          turnos.map(({ entrada, desde }) => {
+            const tx = textos(entrada, lang);
+            const d = entrada.es.data;
+            return (
+              <div data-principal data-desde={desde} data-hasta={entrada.hasta} hidden={Boolean(desde)}>
+                <p class="subtitulo">
+                  <a href={rutaFicha(lang, entrada.slug)} lang={tx.idioma('titulo')}>
+                    {d.cancelado ? <s>{tx.titulo}</s> : tx.titulo}
+                  </a>
+                </p>
+                {tx.aviso && (
+                  <p class="aviso" lang={tx.idioma('aviso')}>
+                    <b>{u.aviso}</b> {tx.aviso}
+                  </p>
+                )}
+                <table class="datos">
+                  <tr>
+                    <th scope="row">{u.cuando}</th>
+                    <td>
+                      {entrada.exacta ? fechaSinAnio(d.fecha, lang) : fechaLarga(d.fecha, d.precision, lang)}
+                      {entrada.exacta && d.hora && `, ${d.hora}`}
+                      {entrada.exacta && !d.cancelado && <span data-dia={entrada.dia} />}
+                      {d.cancelado && ` · ${u.cancelado}`}
+                    </td>
+                  </tr>
+                  {tx.lugar && (
+                    <tr>
+                      <th scope="row">{u.donde}</th>
+                      <td lang={tx.idioma('lugar')}>{tx.lugar}</td>
+                    </tr>
+                  )}
+                </table>
+              </div>
+            );
+          })
+        }
+        <p data-sin-proximos hidden={proximas.length > 0} style="margin-bottom:1rem">{u.nadaConFecha}</p>
+
+        <a class="boton" href={WHATSAPP.url} rel="noopener" aria-describedby="nota-1">
+          {u.recibirAvisos}
+          <sup aria-hidden="true">1</sup>
+        </a>
+
+        {
+          turnos.map(({ entrada, desde }) => (
+            <div data-desde={desde} data-hasta={entrada.hasta} hidden={Boolean(desde)}>
+              <p class="enlaces">
+                <a href={rutaFicha(lang, entrada.slug)}>{u.verActividad}</a>
+                {entrada.exacta && !entrada.es.data.cancelado && <a href={rutaIcs(lang, entrada.slug)}>{u.calendario}</a>}
+              </p>
+              <Figura entrada={entrada} lang={lang} />
+            </div>
+          ))
+        }
+        {proximas.length === 0 && ultima && <Figura entrada={ultima} lang={lang} />}
+      </section>
+    </div>
+
+    <div>
+      {
+        proximas.length > 1 && (
+          <section data-grupo>
+            <h2>{u.tambien}</h2>
+            <ol class="refs">
+              {proximas.slice(1).map((e, i) => (
+                <Referencia entrada={e} lang={lang} modo="proxima" hasta={proximas[i].hasta} />
+              ))}
+            </ol>
+          </section>
+        )
+      }
+
+      <section class="solo-escritorio">
+        <h2>{u.avisos}</h2>
+        <div class="aviso-qr">
+          <QR url={WHATSAPP.url} alt={u.avisosWhatsapp} />
+          <p>{u.escanea}</p>
+        </div>
+      </section>
+
+      {
+        archivo.length > 0 && (
+          <section data-grupo hidden={pasadas.length === 0}>
+            <h2>{u.anteriores}</h2>
+            <ol class="refs">
+              {archivo.map((e) => (
+                <Referencia entrada={e} lang={lang} modo="archivo" />
+              ))}
+            </ol>
+            <p class="enlaces">
+              <a href={ruta(lang, 'actividades')}>{u.todas}</a>
+            </p>
+          </section>
+        )
+      }
+    </div>
+  </div>
+
+  <p class="notas" id="nota-1">
+    <sup aria-hidden="true">1</sup>{' '}
+    {WHATSAPP.tipo === 'grupo' ? u.notaGrupo : u.notaCanal}
+  </p>
+</Paper>
