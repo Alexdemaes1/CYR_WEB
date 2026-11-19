@@ -1,0 +1,122 @@
+---
+import '@fontsource/big-shoulders/latin-900.css';
+import '@fontsource/gloock/latin-400.css';
+import '@fontsource/hanken-grotesk/latin-400.css';
+import '@fontsource/hanken-grotesk/latin-600.css';
+import '@fontsource/hanken-grotesk/latin-700.css';
+import '../../styles/brasa.css';
+import { EVENTO } from '../../data/brasa';
+
+// Panel privado de "Brasa, humo o chicha": todas las valoraciones, con nombres y comentarios.
+// La clave se escribe aquí y viaja en una cabecera; nunca va en la dirección.
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Panel · Brasa, humo o chicha</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body class="asador">
+    <div class="mesa ancha">
+      <h1 class="titulo-bloque" style="margin-top:1rem">Panel de comandas</h1>
+      <p style="margin:0 0 1rem">{EVENTO.nombre} · {EVENTO.dia}</p>
+
+      <form id="entrar" class="comanda" style="max-width:26rem;transform:none">
+        <div class="paso">
+          <label class="etiqueta" for="clave">Clave del panel</label>
+          <input type="password" id="clave" autocomplete="current-password" required />
+        </div>
+        <p class="fallo" id="fallo" role="alert" hidden></p>
+        <button class="marchando" type="submit">Entrar</button>
+      </form>
+
+      <div id="dentro" hidden>
+        <p id="resumen" style="font-weight:600"></p>
+        <p style="display:flex;gap:.8rem;flex-wrap:wrap;margin:0 0 1rem">
+          <button class="marchando menor" id="csv" type="button">Descargar CSV</button>
+          <button class="marchando menor" id="recargar" type="button">Actualizar</button>
+        </p>
+        <p class="ayuda" style="margin-bottom:.8rem">
+          En amarillo, las enviadas fuera del horario de su charla (desde {EVENTO.antes} minutos antes de que acabe hasta {EVENTO.margen} después). Tachadas, las que la misma persona corrigió después para la misma charla.
+        </p>
+        <div class="desliza">
+          <table class="tabla-panel">
+            <thead>
+              <tr>
+                <th>Hora del servidor</th>
+                <th>Nombre</th>
+                <th>Correo</th>
+                <th>Charla</th>
+                <th>Sello</th>
+                <th>Nota</th>
+                <th>Comentario</th>
+                <th>En horario</th>
+              </tr>
+            </thead>
+            <tbody id="filas"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+      let clave = '';
+
+      async function pedir(formato = '') {
+        return fetch(`/api/brasa/panel/${formato ? `?formato=${formato}` : ''}`, { headers: { 'x-clave': clave } });
+      }
+
+      async function cargar() {
+        const res = await pedir();
+        const r = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          $('fallo').textContent = r.error ?? 'No se pudo entrar.';
+          $('fallo').hidden = false;
+          $('dentro').hidden = true;
+          $('entrar').hidden = false;
+          return;
+        }
+        $('entrar').hidden = true;
+        $('dentro').hidden = false;
+        const votos = r.votos as Record<string, string | number | boolean>[];
+        const personas = new Set(votos.map((v) => String(v.correo ?? v.nombre).toLowerCase())).size;
+        $('resumen').textContent = `${votos.length} comandas de ${personas} personas. Las más recientes, arriba.`;
+        const cuerpo = $('filas');
+        cuerpo.replaceChildren();
+        for (const v of votos) {
+          const tr = document.createElement('tr');
+          if (!v.vigente) tr.className = 'caducada';
+          for (const campo of ['hora', 'nombre', 'correo', 'titulo', 'categoria', 'nota', 'comentario', 'enHorario']) {
+            const td = document.createElement('td');
+            td.textContent = String(v[campo] ?? '');
+            if (campo === 'enHorario' && v[campo] === 'no') td.className = 'fuera';
+            tr.append(td);
+          }
+          cuerpo.append(tr);
+        }
+      }
+
+      $('entrar').addEventListener('submit', (e) => {
+        e.preventDefault();
+        $('fallo').hidden = true;
+        clave = $<HTMLInputElement>('clave').value;
+        cargar();
+      });
+      $('recargar').addEventListener('click', cargar);
+      $('csv').addEventListener('click', async () => {
+        const res = await pedir('csv');
+        if (!res.ok) return;
+        const enlace = document.createElement('a');
+        enlace.href = URL.createObjectURL(await res.blob());
+        enlace.download = 'brasa-humo-chicha.csv';
+        enlace.click();
+        URL.revokeObjectURL(enlace.href);
+      });
+    </script>
+  </body>
+</html>

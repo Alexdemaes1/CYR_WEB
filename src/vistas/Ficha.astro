@@ -26,7 +26,8 @@ const cuando = `${fechaLarga(d.fecha, d.precision, lang)}${horario}`;
 const descripcion = [`${fechaCorta(d.fecha, d.precision, lang)}${horario}`, tx.lugar, tx.resumen].filter(Boolean).join(' · ');
 // Con botón y calendario solo lo que sigue en pie. La nota 1 acompaña al botón de WhatsApp.
 const abierta = entrada.proxima && !d.cancelado;
-const conNota = abierta && !d.inscripcion;
+const principal: 'accion' | 'inscripcion' | 'whatsapp' = tx.accion ? 'accion' : d.inscripcion ? 'inscripcion' : 'whatsapp';
+const conNota = abierta && principal === 'whatsapp';
 ---
 
 <Paper lang={lang} titulo={tx.titulo} descripcion={descripcion} alterno={rutaFicha(otro(lang), entrada.slug)} tipo="article">
@@ -86,7 +87,11 @@ const conNota = abierta && !d.inscripcion;
   {
     abierta && (
       <div data-hasta={entrada.hasta}>
-        {d.inscripcion ? (
+        {principal === 'accion' ? (
+          <a class="boton" href={tx.accion!.url}>
+            {tx.accion!.texto}
+          </a>
+        ) : principal === 'inscripcion' ? (
           <a class="boton" href={d.inscripcion} rel="noopener">
             {u.apuntarme}
           </a>
@@ -98,7 +103,7 @@ const conNota = abierta && !d.inscripcion;
         )}
         <p class="enlaces">
           {entrada.exacta && <a href={rutaIcs(lang, entrada.slug)}>{u.calendario}</a>}
-          {d.inscripcion && (
+          {principal !== 'whatsapp' && (
             <a href={WHATSAPP.url} rel="noopener">
               {u.avisosWhatsapp}
             </a>

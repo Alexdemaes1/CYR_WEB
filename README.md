@@ -28,11 +28,14 @@ En `src/config.ts`, `WHATSAPP.url`. Si el enlace es de un canal, cambia también
 
 `npm run build` genera la web en `dist/`. Cualquier hosting de estáticos sirve.
 
-Con Cloudflare Pages o Vercel conectados al repositorio:
+La web está preparada para Vercel (la actividad "Brasa, humo o chicha" necesita un servidor para guardar las valoraciones):
 
-- Comando de compilación: `npm run build`
-- Carpeta de salida: `dist`
-- Variable de entorno `SITE_URL` con la dirección pública (por ejemplo `https://cienciayredes.pages.dev`). Sin ella, los enlaces de la vista previa, del calendario y de "Cómo citar" apuntan a `localhost`.
+1. En Vercel, **Add New > Project** e importa este repositorio. No hay que tocar nada: detecta Astro.
+2. En el proyecto, pestaña **Storage > Create Database > Upstash for Redis** (plan gratuito) y conéctala al proyecto. Vercel añade sola las variables de la base de datos.
+3. En **Settings > Environment Variables** añade `BRASA_CLAVE` (la clave del panel privado; invéntala larga) y, si tienes dominio propio, `SITE_URL`.
+4. **Deployments > Redeploy** para que la web arranque con esas variables.
+
+El panel con todas las valoraciones está en `/brasa/panel/`.
 
 ## Tipografía
 

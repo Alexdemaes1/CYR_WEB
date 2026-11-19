@@ -162,6 +162,22 @@ a:focus-visible,
   color: var(--papel);
 }
 
+.boton.secundario {
+  background: var(--papel);
+  color: var(--tinta);
+}
+
+.boton.secundario:hover {
+  background: var(--rojo);
+  border-color: var(--rojo);
+  color: var(--tinta);
+}
+
+.boton + .boton,
+[data-principal] .boton {
+  margin-bottom: 0.7rem;
+}
+
 .boton sup {
   font-weight: 400;
   font-size: 0.7em;

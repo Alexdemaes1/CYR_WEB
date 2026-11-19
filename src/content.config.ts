@@ -23,6 +23,9 @@ const entradas = defineCollection({
     para_quien: z.string().optional(),
     hay_que: z.string().optional(),
     inscripcion: z.url().optional(),
+    // Botón propio de la entrada mientras sigue en pie (por ejemplo, abrir un juego): texto y ruta o URL
+    accion_texto: z.string().optional(),
+    accion_url: z.string().optional(),
     aviso: z.string().optional(),
     cancelado: z.boolean().default(false),
     // Pies de foto opcionales: nombre de fichero -> pie
@@ -41,6 +44,7 @@ const entradasEn = defineCollection({
     para_quien: z.string().optional(),
     hay_que: z.string().optional(),
     aviso: z.string().optional(),
+    accion_texto: z.string().optional(),
     pies: z.record(z.string(), z.string()).default({}),
   }),
 });

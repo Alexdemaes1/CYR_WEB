@@ -88,7 +88,7 @@ export function ordenProximas(entradas: Entrada[]): Entrada[] {
   return entradas.filter((e) => e.proxima).sort((a, b) => a.hasta.localeCompare(b.hasta) || a.numero - b.numero);
 }
 
-const CAMPOS = ['titulo', 'resumen', 'lugar', 'para_quien', 'hay_que', 'aviso'] as const;
+const CAMPOS = ['titulo', 'resumen', 'lugar', 'para_quien', 'hay_que', 'aviso', 'accion_texto'] as const;
 type Campo = (typeof CAMPOS)[number];
 
 /** Textos de una entrada en el idioma pedido; lo que falte en inglés cae al español. */
@@ -103,6 +103,8 @@ export function textos(entrada: Entrada, lang: Lang) {
     para_quien: valor('para_quien'),
     hay_que: valor('hay_que'),
     aviso: valor('aviso'),
+    /** Botón propio de la entrada, si tiene texto y destino. */
+    accion: es.accion_url && valor('accion_texto') ? { texto: valor('accion_texto') as string, url: es.accion_url } : undefined,
     pies: { ...es.pies, ...(en?.pies ?? {}) } as Record<string, string>,
     /** 'es' si en la página inglesa ese campo sale en español (para el atributo lang). */
     idioma: (campo: Campo): 'es' | undefined => (lang === 'en' && en?.[campo] === undefined && es[campo] !== undefined ? 'es' : undefined),

@@ -28,6 +28,8 @@ const resumen = RESUMEN[lang].trim();
 // - en "Actividades anteriores" las próximas van ocultas y aparecen al día siguiente de celebrarse.
 const turnos = proximas.map((entrada, i) => ({ entrada, desde: i > 0 ? proximas[i - 1].hasta : undefined }));
 const archivo = [...[...proximas].reverse(), ...pasadas.slice(0, 4)];
+// Un solo botón rojo por pantalla: si la próxima trae su propia acción, WhatsApp va de secundario.
+const conAccion = Boolean(proximas[0] && textos(proximas[0], lang).accion && !proximas[0].es.data.cancelado);
 ---
 
 <Paper lang={lang} alterno={ruta(otro(lang), 'inicio')} portada ancha>
@@ -77,13 +79,18 @@ const archivo = [...[...proximas].reverse(), ...pasadas.slice(0, 4)];
                     </tr>
                   )}
                 </table>
+                {tx.accion && !d.cancelado && (
+                  <a class="boton" href={tx.accion.url}>
+                    {tx.accion.texto}
+                  </a>
+                )}
               </div>
             );
           })
         }
         <p data-sin-proximos hidden={proximas.length > 0} style="margin-bottom:1rem">{u.nadaConFecha}</p>
 
-        <a class="boton" href={WHATSAPP.url} rel="noopener" aria-describedby="nota-1">
+        <a class:list={['boton', { secundario: conAccion }]} href={WHATSAPP.url} rel="noopener" aria-describedby="nota-1">
           {u.recibirAvisos}
           <sup aria-hidden="true">1</sup>
         </a>
