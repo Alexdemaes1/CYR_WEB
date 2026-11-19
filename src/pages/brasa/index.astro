@@ -210,12 +210,12 @@ const sesiones = SESIONES.map((s) => ({ ...s, abre: abreA(s) }));
 
         <!-- campo trampa para bots: las personas no lo ven -->
         <div class="solo-lectores" aria-hidden="true">
-          <label>No rellenar <input type="text" name="web" tabindex="-1" autocomplete="off" /></label>
+          <label>No rellenar <input type="text" name="brasa_extra" tabindex="-1" autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" /></label>
         </div>
 
         <p class="fallo" id="fallo" role="alert" hidden></p>
         <p class="fallo" id="cerrada" hidden>La cocina ya está cerrada: no se admiten más comandas. Gracias por participar.</p>
-        <button class="marchando" id="enviar" type="submit">¡Marchando!</button>
+        <button class="marchando" id="enviar" type="submit" disabled>Cargando…</button>
         <p class="letra-pequena">
           Al enviar se guardan tu nombre, tu correo, la charla, el sello, la nota, tu comentario y la hora exacta del servidor. Solo los ve el club. <a href="/aviso-legal/">Más detalle</a>.
         </p>
@@ -302,6 +302,7 @@ const sesiones = SESIONES.map((s) => ({ ...s, abre: abreA(s) }));
       let desfase = 0;
       let todoAbierto = false;
       let cerrada = false;
+      let sincronizado = false;
       const partesMadrid = () => {
         const p = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Madrid', hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }).formatToParts(new Date(Date.now() + desfase));
         const v = (t: string) => p.find((x) => x.type === t)!.value;
@@ -318,7 +319,9 @@ const sesiones = SESIONES.map((s) => ({ ...s, abre: abreA(s) }));
         const yaPaso = ahora.dia > datos.evento.dia;
         document.querySelectorAll<HTMLLabelElement>('#carta label[data-id]').forEach((fila) => {
           const abre = aMinutos(fila.dataset.abre!);
-          const abierta = !cerrada && (todoAbierto || yaPaso || (esElDia && ahora.minutos >= abre));
+          const porHora = esElDia && ahora.minutos >= abre;
+          if (porHora && sincronizado) fila.dataset.abierta = '1';
+          const abierta = !cerrada && (todoAbierto || yaPaso || porHora || fila.dataset.abierta === '1');
           const enCurso = esElDia && !abierta && ahora.minutos >= aMinutos(fila.dataset.inicio!);
           const entrada = fila.querySelector('input')!;
           const estabaCerrada = fila.classList.contains('cerrada');
@@ -467,6 +470,7 @@ const sesiones = SESIONES.map((s) => ({ ...s, abre: abreA(s) }));
           desfase = new Date(m.ahora).getTime() + (Number.isFinite(edad) ? edad : 0) - Date.now();
           todoAbierto = Boolean(m.todoAbierto);
           cerrada = Boolean(m.cerrada);
+          sincronizado = true;
           cuentas = m.sesiones;
           if (lista) {
             $('recuento').textContent = m.total ? `${m.total} ${m.total === 1 ? 'comanda' : 'comandas'} en la parrilla` : 'Esperando comandas';
@@ -498,7 +502,7 @@ const sesiones = SESIONES.map((s) => ({ ...s, abre: abreA(s) }));
           categoria: String(f.get('categoria') ?? ''),
           nota: f.get('nota') ?? '',
           comentario: String(f.get('comentario') ?? '').trim(),
-          web: String(f.get('web') ?? ''),
+          brasa_extra: String(f.get('brasa_extra') ?? ''),
         };
         if (cuerpo.nombre.length < 5 || !cuerpo.nombre.includes(' ')) return avisar('Escribe tu nombre y apellidos.', nombre);
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(cuerpo.correo)) return avisar('Escribe tu correo de la universidad.', correo);
@@ -509,10 +513,13 @@ const sesiones = SESIONES.map((s) => ({ ...s, abre: abreA(s) }));
 
         boton.disabled = true;
         boton.textContent = 'Apuntando…';
+        // con la red del auditorio saturada, a los 20 s se corta y se puede reintentar
+        const corte = new AbortController();
+        const temporizador = setTimeout(() => corte.abort(), 20000);
         try {
-          const res = await fetch('/api/brasa/votos/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cuerpo) });
+          const res = await fetch('/api/brasa/votos/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cuerpo), signal: corte.signal });
           const r = await res.json().catch(() => ({}));
-          if (!res.ok) return avisar(r.error ?? 'No se pudo guardar. Vuelve a intentarlo.');
+          if (!res.ok || !r.hora) return avisar(r.error ?? 'No ha llegado respuesta. Vuelve a pulsar «¡Marchando!»: si ya se había guardado, cuenta solo la última.');
           guardar('brasa:nombre', cuerpo.nombre);
           guardar('brasa:correo', cuerpo.correo);
           const recibo: Recibo = { numero: r.numero, hora: r.hora, sesion: r.sesion, titulo: r.titulo, categoria: r.categoria };
@@ -530,12 +537,25 @@ const sesiones = SESIONES.map((s) => ({ ...s, abre: abreA(s) }));
           marcador();
           setTimeout(marcador, 12000);
         } catch {
-          avisar('Sin conexión. Tu comanda no se ha enviado: prueba otra vez.');
+          avisar('No ha llegado respuesta. Vuelve a pulsar «¡Marchando!»: si ya se había guardado, cuenta solo la última.');
         } finally {
+          clearTimeout(temporizador);
           boton.disabled = false;
           boton.textContent = '¡Marchando!';
         }
       });
+
+      // si el navegador restaura la pestaña (al volver de WhatsApp o de la cámara), se repinta lo que ya estaba elegido
+      window.addEventListener('pageshow', () => {
+        marcar();
+        contar();
+        const elegida = form.querySelector<HTMLInputElement>('input[name="sesion"]:checked');
+        if (cajaOtra) cajaOtra.hidden = !(elegida && elegida.value === 'otra');
+      });
+
+      // todo listo: se enciende el botón
+      boton.disabled = false;
+      boton.textContent = '¡Marchando!';
     </script>
   </body>
 </html>

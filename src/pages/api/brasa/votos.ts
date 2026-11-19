@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { actividadCerrada, ahoraServidor, env, hayAlmacen, horaMadrid, leerVotos, marcador, registrar, validar } from '../../../lib/brasa';
+import { actividadCerrada, ahoraServidor, env, hayAlmacen, horaMadrid, leerVotosReciente, marcador, registrar, validar } from '../../../lib/brasa';
 
 // Se ejecuta en el servidor (el resto de la web es estática).
 export const prerender = false;
@@ -14,13 +14,14 @@ export const GET: APIRoute = async () => {
   if (!hayAlmacen()) return json({ error: SIN_ALMACEN }, 503);
   try {
     // todoAbierto solo es cierto en pruebas (BRASA_ABIERTO=1): la página desbloquea todas las charlas.
-    const cuerpo = { ...marcador(await leerVotos()), todoAbierto: env('BRASA_ABIERTO') === '1', cerrada: actividadCerrada(horaMadrid(ahoraServidor())) };
+    const cuerpo = { ...marcador(await leerVotosReciente()), todoAbierto: env('BRASA_ABIERTO') === '1', cerrada: actividadCerrada(horaMadrid(ahoraServidor())) };
     // Cien móviles preguntan cada 20 segundos. La red de Vercel guarda la respuesta 10 segundos y la
     // reparte a todos, así la base de datos recibe unas pocas consultas por minuto y no una por móvil.
     return new Response(JSON.stringify(cuerpo), {
       headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'public, max-age=0, s-maxage=10, stale-while-revalidate=20' },
     });
-  } catch {
+  } catch (e) {
+    console.error('[brasa] GET votos', e);
     return json({ error: 'No se pudo leer el marcador.' }, 502);
   }
 };
@@ -37,7 +38,7 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ error: 'Petición mal formada.' }, 400);
   }
   // Campo trampa: las personas no lo ven; si llega relleno es un bot.
-  if (cuerpo.web) return json({ error: 'Petición rechazada.' }, 400);
+  if (cuerpo.brasa_extra) return json({ error: 'Petición rechazada.' }, 400);
 
   const resultado = validar(cuerpo);
   if (!resultado.ok) return json({ error: resultado.error }, 422);
@@ -46,7 +47,8 @@ export const POST: APIRoute = async ({ request }) => {
     if ('error' in guardado) return json({ error: guardado.error }, 409);
     const { voto, numero } = guardado;
     return json({ ok: true, numero, id: voto.id, hora: voto.hora, sesion: voto.sesion, titulo: voto.titulo, categoria: voto.categoria, nota: voto.nota ?? null }, 201);
-  } catch {
+  } catch (e) {
+    console.error('[brasa] POST votos', e);
     return json({ error: 'No se pudo guardar. Vuelve a intentarlo en un momento.' }, 502);
   }
 };

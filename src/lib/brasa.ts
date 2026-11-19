@@ -35,7 +35,13 @@ function redis(): { url: string; token: string } | undefined {
 
 async function orden<T>(comando: (string | number)[]): Promise<T> {
   const r = redis()!;
-  const res = await fetch(r.url, { method: 'POST', headers: { Authorization: `Bearer ${r.token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(comando) });
+  // Con tiempo límite: si la base se atasca, falla rápido y la persona puede reintentar.
+  const res = await fetch(r.url, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${r.token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(comando),
+    signal: AbortSignal.timeout(8000),
+  });
   if (!res.ok) throw new Error(`Almacén: ${res.status}`);
   return ((await res.json()) as { result: T }).result;
 }
@@ -47,13 +53,43 @@ export function hayAlmacen(): boolean {
   return Boolean(redis()) || import.meta.env.DEV;
 }
 
-export async function leerVotos(): Promise<Voto[]> {
-  if (redis()) return (await orden<string[]>(['LRANGE', CLAVE_LISTA, 0, -1])).map((v) => JSON.parse(v) as Voto);
+const esTexto = (x: unknown): x is string => typeof x === 'string';
+
+// Un registro ilegible (por ejemplo, tras tocar la lista a mano) se ignora y se anota,
+// en vez de dejar sin clasificación, sin panel y sin CSV a todo el mundo.
+function aVoto(crudo: string): Voto[] {
   try {
-    return (await readFile(FICHERO_LOCAL, 'utf8')).split('\n').filter(Boolean).map((l) => JSON.parse(l) as Voto);
+    const v = JSON.parse(crudo);
+    if (v && esTexto(v.hora) && esTexto(v.sesion) && esTexto(v.titulo) && esTexto(v.categoria) && (esTexto(v.correo) || esTexto(v.nombre))) return [v as Voto];
+  } catch {}
+  console.error('[brasa] registro ilegible, se ignora:', String(crudo).slice(0, 200));
+  return [];
+}
+
+export async function leerVotos(): Promise<Voto[]> {
+  if (redis()) return (await orden<string[]>(['LRANGE', CLAVE_LISTA, 0, -1])).flatMap(aVoto);
+  try {
+    return (await readFile(FICHERO_LOCAL, 'utf8')).split('\n').filter(Boolean).flatMap(aVoto);
   } catch {
     return [];
   }
+}
+
+// La clasificación pública no lee la base en cada petición: comparte una lectura durante unos
+// segundos. Protege la base aunque alguien se salte la caché de Vercel añadiendo parámetros a la URL.
+const MEMORIA_MS = 8000;
+let memoria: { hasta: number; votos: Promise<Voto[]> } | undefined;
+
+export function leerVotosReciente(): Promise<Voto[]> {
+  const ahora = Date.now();
+  if (memoria && memoria.hasta > ahora) return memoria.votos;
+  const votos = leerVotos();
+  memoria = { hasta: ahora + MEMORIA_MS, votos };
+  // un fallo no se queda memorizado
+  votos.catch(() => {
+    if (memoria && memoria.votos === votos) memoria = undefined;
+  });
+  return votos;
 }
 
 /** Cuántas valoraciones hay, sin traerlas todas. */

@@ -27,3 +27,6 @@ pnpm-debug.log*
 .datos/
 # Vercel
 .vercel/
+
+# HTML intermedio del cartel (lleva las fuentes incrustadas)
+carteles/*.html

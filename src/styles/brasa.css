@@ -8,6 +8,7 @@
   --carbon: #1d1916;
   --ticket: #fbf6ea;
   --brasa: #e8590c;
+  --brasa-fondo: #c2410c; /* el mismo naranja, más oscuro, para cuando lleva texto blanco encima */
   --humo: #5d6f7b;
   --chicha: #b4232a;
   --mostaza: #f0b90b;
@@ -497,7 +498,7 @@ textarea:focus {
 }
 
 .sello-brasa {
-  --tinta: var(--brasa);
+  --tinta: var(--brasa-fondo);
 }
 
 .sellos svg {
@@ -947,7 +948,7 @@ textarea:focus {
 }
 
 .barra .b-brasa {
-  background: var(--brasa);
+  background: var(--brasa-fondo);
 }
 
 .parrilla .dato {

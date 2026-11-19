@@ -20,7 +20,8 @@ export const GET: APIRoute = async ({ request, url }) => {
     }
     const actuales = new Set(vigentes(votos).map((v) => v.id));
     return json({ votos: votos.map((v) => ({ ...v, enHorario: enHorario(v), vigente: actuales.has(v.id) })).reverse() });
-  } catch {
+  } catch (e) {
+    console.error('[brasa] panel', e);
     return json({ error: 'No se pudieron leer las valoraciones.' }, 502);
   }
 };

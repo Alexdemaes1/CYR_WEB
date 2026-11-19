@@ -12,7 +12,8 @@
     "astro": "astro",
     "fotos": "node scripts/reducir-fotos.mjs",
     "og": "node scripts/og.mjs",
-    "fuentes": "node scripts/recortar-fuentes.mjs"
+    "fuentes": "node scripts/recortar-fuentes.mjs",
+    "cartel": "node scripts/cartel-qr.mjs"
   },
   "dependencies": {
     "@astrojs/vercel": "^11.0.22",
