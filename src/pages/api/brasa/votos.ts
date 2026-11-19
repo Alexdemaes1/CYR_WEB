@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { env, hayAlmacen, leerVotos, marcador, registrar, validar } from '../../../lib/brasa';
+import { actividadCerrada, ahoraServidor, env, hayAlmacen, horaMadrid, leerVotos, marcador, registrar, validar } from '../../../lib/brasa';
 
 // Se ejecuta en el servidor (el resto de la web es estática).
 export const prerender = false;
@@ -14,7 +14,12 @@ export const GET: APIRoute = async () => {
   if (!hayAlmacen()) return json({ error: SIN_ALMACEN }, 503);
   try {
     // todoAbierto solo es cierto en pruebas (BRASA_ABIERTO=1): la página desbloquea todas las charlas.
-    return json({ ...marcador(await leerVotos()), todoAbierto: env('BRASA_ABIERTO') === '1' });
+    const cuerpo = { ...marcador(await leerVotos()), todoAbierto: env('BRASA_ABIERTO') === '1', cerrada: actividadCerrada(horaMadrid(ahoraServidor())) };
+    // Cien móviles preguntan cada 20 segundos. La red de Vercel guarda la respuesta 10 segundos y la
+    // reparte a todos, así la base de datos recibe unas pocas consultas por minuto y no una por móvil.
+    return new Response(JSON.stringify(cuerpo), {
+      headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'public, max-age=0, s-maxage=10, stale-while-revalidate=20' },
+    });
   } catch {
     return json({ error: 'No se pudo leer el marcador.' }, 502);
   }

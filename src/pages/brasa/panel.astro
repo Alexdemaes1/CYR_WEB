@@ -41,7 +41,7 @@ import { EVENTO } from '../../data/brasa';
           <button class="marchando menor" id="recargar" type="button">Actualizar</button>
         </p>
         <p class="ayuda" style="margin-bottom:.8rem">
-          En amarillo, las enviadas fuera del horario de su charla (desde {EVENTO.antes} minutos antes de que acabe hasta {EVENTO.margen} después). Tachadas, las que la misma persona corrigió después para la misma charla.
+          En amarillo, las enviadas fuera del horario de su charla (desde que se abre, al {Math.round(EVENTO.abreAl * 100)} % de su duración, hasta {EVENTO.margen} minutos después de acabar). Tachadas, las que la misma persona corrigió después para la misma charla.
         </p>
         <div class="desliza">
           <table class="tabla-panel">

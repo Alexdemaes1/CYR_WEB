@@ -56,6 +56,21 @@ export async function leerVotos(): Promise<Voto[]> {
   }
 }
 
+/** Cuántas valoraciones hay, sin traerlas todas. */
+export async function contarVotos(): Promise<number> {
+  if (redis()) return orden<number>(['LLEN', CLAVE_LISTA]);
+  return (await leerVotos()).length;
+}
+
+/**
+ * La hora del servidor. Solo al desarrollar en local se puede fingir con BRASA_AHORA
+ * (por ejemplo 2026-11-20T09:42:00Z) para probar los horarios; publicada, es siempre la real.
+ */
+export function ahoraServidor(): Date {
+  const fingida = import.meta.env.DEV ? env('BRASA_AHORA') : undefined;
+  return fingida ? new Date(fingida) : new Date();
+}
+
 export async function guardarVoto(voto: Voto): Promise<number> {
   if (redis()) return orden<number>(['RPUSH', CLAVE_LISTA, JSON.stringify(voto)]);
   await mkdir('.datos', { recursive: true });
@@ -75,8 +90,14 @@ export function horaMadrid(instante: Date): string {
 
 const minutos = (hhmm: string) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5));
 
+/** ¿Ha terminado ya el plazo de toda la actividad? `hora` es la del servidor en Madrid. */
+export function actividadCerrada(hora: string): boolean {
+  return env('BRASA_ABIERTO') !== '1' && hora.split(' ')[0] >= EVENTO.cierra;
+}
+
 /**
- * ¿Se puede valorar ya esta charla? Solo cuando está acabando o ha acabado.
+ * ¿Se puede valorar ya esta charla? Desde que lleva EVENTO.abreAl de su duración prevista,
+ * y ya no se vuelve a cerrar hasta el cierre de la actividad.
  * `hora` es la del servidor en Madrid ("AAAA-MM-DD HH:MM:SS"). BRASA_ABIERTO=1 lo abre todo (pruebas).
  */
 export function sesionAbierta(sesion: Sesion, hora: string): boolean {
@@ -87,7 +108,7 @@ export function sesionAbierta(sesion: Sesion, hora: string): boolean {
 }
 
 /**
- * ¿Se envió al acabar la charla, dentro del margen de cortesía?
+ * ¿Se envió durante el tramo final de la charla o poco después (margen de cortesía)?
  * 'si' | 'no' | '' cuando no se puede saber (charla escrita a mano).
  */
 export function enHorario(voto: Voto): 'si' | 'no' | '' {
@@ -137,11 +158,11 @@ export function validar(cuerpo: Record<string, unknown>): Resultado {
 }
 
 export async function registrar(datos: Omit<Voto, 'id' | 'ts' | 'hora'>, sesion?: Sesion): Promise<{ voto: Voto; numero: number } | { error: string }> {
-  const ahora = new Date();
+  const ahora = ahoraServidor();
   const hora = horaMadrid(ahora);
+  if (actividadCerrada(hora)) return { error: 'La actividad ya está cerrada. Gracias por participar.' };
   if (sesion && !sesionAbierta(sesion, hora)) return { error: `Esa charla se puede valorar a partir de las ${abreA(sesion)}.` };
-  const previos = await leerVotos();
-  if (previos.length >= MAX_VOTOS) return { error: 'La actividad ya no admite más valoraciones.' };
+  if ((await contarVotos()) >= MAX_VOTOS) return { error: 'La actividad ya no admite más valoraciones.' };
   const voto: Voto = { id: crypto.randomUUID().slice(0, 8), ts: ahora.toISOString(), hora, ...datos };
   const numero = await guardarVoto(voto);
   return { voto, numero };
@@ -173,7 +194,7 @@ export function marcador(votos: Voto[]): Marcador {
     sesiones[v.sesion] ??= { brasa: 0, humo: 0, chicha: 0 };
     sesiones[v.sesion][v.categoria]++;
   }
-  return { ahora: new Date().toISOString(), total: validos.length, sesiones };
+  return { ahora: ahoraServidor().toISOString(), total: validos.length, sesiones };
 }
 
 export function claveCorrecta(recibida: string | null): boolean {

@@ -64,7 +64,7 @@ const sesiones = SESIONES.map((s) => ({ ...s, abre: abreA(s) }));
           </span>
           <span class="p-chicha"><span class="o">o</span>chicha</span>
         </h1>
-        <p class="rotulo-bajo">Cuando acaba una charla, le pones un sello y cuentas por qué. La hora la apunta la máquina.</p>
+        <p class="rotulo-bajo">Cuando una charla va acabando, le pones un sello y cuentas por qué. La hora la apunta la máquina.</p>
       </header>
 
       <form class="comanda" id="comanda" novalidate>
@@ -214,6 +214,7 @@ const sesiones = SESIONES.map((s) => ({ ...s, abre: abreA(s) }));
         </div>
 
         <p class="fallo" id="fallo" role="alert" hidden></p>
+        <p class="fallo" id="cerrada" hidden>La cocina ya está cerrada: no se admiten más comandas. Gracias por participar.</p>
         <button class="marchando" id="enviar" type="submit">¡Marchando!</button>
         <p class="letra-pequena">
           Al enviar se guardan tu nombre, tu correo, la charla, el sello, la nota, tu comentario y la hora exacta del servidor. Solo los ve el club. <a href="/aviso-legal/">Más detalle</a>.
@@ -300,6 +301,7 @@ const sesiones = SESIONES.map((s) => ({ ...s, abre: abreA(s) }));
       // ---- la hora: se sigue la del servidor (llega con el marcador), no la del móvil
       let desfase = 0;
       let todoAbierto = false;
+      let cerrada = false;
       const partesMadrid = () => {
         const p = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Madrid', hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }).formatToParts(new Date(Date.now() + desfase));
         const v = (t: string) => p.find((x) => x.type === t)!.value;
@@ -316,7 +318,7 @@ const sesiones = SESIONES.map((s) => ({ ...s, abre: abreA(s) }));
         const yaPaso = ahora.dia > datos.evento.dia;
         document.querySelectorAll<HTMLLabelElement>('#carta label[data-id]').forEach((fila) => {
           const abre = aMinutos(fila.dataset.abre!);
-          const abierta = todoAbierto || yaPaso || (esElDia && ahora.minutos >= abre);
+          const abierta = !cerrada && (todoAbierto || yaPaso || (esElDia && ahora.minutos >= abre));
           const enCurso = esElDia && !abierta && ahora.minutos >= aMinutos(fila.dataset.inicio!);
           const entrada = fila.querySelector('input')!;
           const estabaCerrada = fila.classList.contains('cerrada');
@@ -324,25 +326,39 @@ const sesiones = SESIONES.map((s) => ({ ...s, abre: abreA(s) }));
           fila.classList.toggle('en-curso', enCurso);
           if (abierta && estabaCerrada && !primeraPasada) fila.classList.add('recien');
           entrada.disabled = !abierta;
-          const hecha = recibos.findLast((r) => r.sesion === fila.dataset.id);
+          const hecha = recibos.filter((r) => r.sesion === fila.dataset.id).pop();
           const estado = fila.querySelector('.estado')!;
           estado.textContent = hecha
             ? `Ya le pusiste ${datos.categorias[hecha.categoria].nombre.toLowerCase()}. Puedes cambiarlo.`
             : abierta
               ? ''
-              : enCurso
-                ? `En curso. Se abre a las ${fila.dataset.abre}`
-                : esElDia
-                  ? `Se abre a las ${fila.dataset.abre}`
-                  : `Se abre el día del foro a las ${fila.dataset.abre}`;
+              : cerrada
+                ? ''
+                : enCurso
+                  ? `En curso. Se abre a las ${fila.dataset.abre}`
+                  : esElDia
+                    ? `Se abre a las ${fila.dataset.abre}`
+                    : `Se abre el día del foro a las ${fila.dataset.abre}`;
         });
+        // cerrada la actividad, no se puede enviar nada (tampoco "otra charla")
+        $('cerrada').hidden = !cerrada;
+        boton.hidden = cerrada;
+        const otra = form.querySelector<HTMLInputElement>('input[name="sesion"][value="otra"]');
+        if (otra) otra.disabled = cerrada;
         primeraPasada = false;
       }
       tictac();
       setInterval(tictac, 1000);
 
+      // ---- la opción elegida se marca con una clase; así funciona también en móviles antiguos
+      function marcar() {
+        form.querySelectorAll<HTMLInputElement>('input[type="radio"]').forEach((i) => i.closest('label')?.classList.toggle('marcada', i.checked));
+        form.querySelector('.sellos')?.classList.toggle('con-eleccion', Boolean(form.querySelector('.sellos input:checked')));
+      }
+
       // ---- "otra charla"
       form.addEventListener('change', (e) => {
+        marcar();
         const t = e.target as HTMLInputElement;
         if (t.name === 'sesion' && cajaOtra) {
           cajaOtra.hidden = t.value !== 'otra';
@@ -446,8 +462,11 @@ const sesiones = SESIONES.map((s) => ({ ...s, abre: abreA(s) }));
           const res = await fetch('/api/brasa/votos/', { headers: { Accept: 'application/json' } });
           if (!res.ok) return;
           const m = await res.json();
-          desfase = new Date(m.ahora).getTime() - Date.now();
+          // la respuesta puede venir guardada unos segundos en la red de Vercel: se le suma su antigüedad
+          const edad = Number(res.headers.get('age') ?? 0) * 1000;
+          desfase = new Date(m.ahora).getTime() + (Number.isFinite(edad) ? edad : 0) - Date.now();
           todoAbierto = Boolean(m.todoAbierto);
+          cerrada = Boolean(m.cerrada);
           cuentas = m.sesiones;
           if (lista) {
             $('recuento').textContent = m.total ? `${m.total} ${m.total === 1 ? 'comanda' : 'comandas'} en la parrilla` : 'Esperando comandas';
@@ -483,7 +502,7 @@ const sesiones = SESIONES.map((s) => ({ ...s, abre: abreA(s) }));
         };
         if (cuerpo.nombre.length < 5 || !cuerpo.nombre.includes(' ')) return avisar('Escribe tu nombre y apellidos.', nombre);
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(cuerpo.correo)) return avisar('Escribe tu correo de la universidad.', correo);
-        if (!cuerpo.sesion) return avisar('Elige la charla. Las que aún no han acabado están cerradas.', document.querySelector<HTMLElement>('#carta input:not(:disabled)'));
+        if (!cuerpo.sesion) return avisar('Elige la charla. Las que aún no van por el final están cerradas.', document.querySelector<HTMLElement>('#carta input:not(:disabled)'));
         if (cuerpo.sesion === 'otra' && cuerpo.titulo.length < 4) return avisar('Di qué charla es.', titulo);
         if (!cuerpo.categoria) return avisar('Falta el sello: brasa, humo o chicha.', form.querySelector<HTMLElement>('input[name="categoria"]'));
         if (cuerpo.comentario.length < MIN) return avisar(`El comentario es obligatorio: al menos ${MIN} letras.`, comentario);
@@ -504,10 +523,12 @@ const sesiones = SESIONES.map((s) => ({ ...s, abre: abreA(s) }));
           comentario.value = '';
           if (titulo) titulo.value = '';
           if (cajaOtra) cajaOtra.hidden = true;
+          marcar();
           contar();
           tictac();
           pintarRecibo(recibo, true).scrollIntoView({ block: 'center', behavior: 'smooth' });
           marcador();
+          setTimeout(marcador, 12000);
         } catch {
           avisar('Sin conexión. Tu comanda no se ha enviado: prueba otra vez.');
         } finally {

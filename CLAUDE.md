@@ -42,8 +42,10 @@ Actividad para valorar las charlas de un evento. Es la única parte con servidor
 - `src/lib/brasa.ts` y `src/pages/api/brasa/`: guardar y leer. **La hora la pone siempre el servidor**; la del móvil no se envía.
 - El marcador público solo da recuentos por charla. Nombres y comentarios salen únicamente por el panel, con la clave `BRASA_CLAVE` en una cabecera.
 - Cada persona se identifica con nombre, apellidos y correo de la universidad. De cada persona (por su correo) y charla cuenta la última valoración; las anteriores se conservan y el panel las tacha.
-- Una charla solo se puede valorar cuando está acabando: desde `EVENTO.antes` minutos antes de su hora de fin. Lo comprueba el servidor; la página lo refleja siguiendo la hora del servidor, no la del móvil. "Otra que no está en la lista" está siempre abierta y el panel la deja sin marca de horario.
-- `BRASA_ABIERTO=1` (solo para pruebas) desbloquea todas las charlas.
+- Una charla se abre cuando lleva `EVENTO.abreAl` de su duración prevista (0.75 = el 75 %) y ya no se vuelve a cerrar ese día. El día `EVENTO.cierra` se cierra todo. Lo comprueba el servidor; la página lo refleja siguiendo la hora del servidor, no la del móvil. "Otra que no está en la lista" está abierta hasta el cierre y el panel la deja sin marca de horario.
+- `BRASA_ABIERTO=1` desbloquea todas las charlas y anula el cierre (pruebas, o emergencia si el horario del evento se descuadra). `BRASA_AHORA` finge la hora del servidor, solo en local.
+- La clasificación pública se guarda 10 segundos en la red de Vercel para no cargar la base de datos con una consulta por móvil.
+- Nada de `:has()` ni de métodos recientes de JavaScript en esta página: tiene que funcionar en móviles antiguos. La opción elegida se marca con la clase `marcada`.
 - Cada sello tiene su letra: brasa en Big Shoulders, humo en Cormorant Garamond cursiva, chicha en Gloock. Texto en Hanken Grotesk y horas en Doto. No usar aquí Computer Modern ni las fuentes de siempre.
 - Variables: ver `.env.example`. Sin base de datos, en producción la página avisa y no guarda (no pierde nada en silencio); en local guarda en `.datos/`.
 - Recoge datos personales: si cambia lo que se guarda o quién lo ve, hay que actualizar `src/vistas/Legal.astro`.

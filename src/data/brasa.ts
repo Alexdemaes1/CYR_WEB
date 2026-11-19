@@ -19,8 +19,13 @@ export const EVENTO = {
   lugar: 'ADDA, Alicante',
   /** Día del evento en Madrid. */
   dia: '2026-11-20',
-  /** Una charla se puede valorar desde estos minutos antes de su hora de fin (no antes). */
-  antes: 5,
+  /**
+   * Una charla se puede valorar cuando lleva esta parte de su duración prevista (0.75 = el 75 %:
+   * una de dos horas se abre a la hora y media). Una vez abierta, sigue abierta hasta el cierre.
+   */
+  abreAl: 0.75,
+  /** Primer día en que ya no se admite ninguna valoración (Madrid). El 21 es sábado. */
+  cierra: '2026-11-21',
   /** Minutos tras el final de una charla en que la valoración cuenta como "en horario". */
   margen: 30,
   /** Longitud mínima del comentario obligatorio. */
@@ -49,10 +54,13 @@ export const CATEGORIAS: Record<Categoria, { nombre: string; lema: string; defin
 
 const dosCifras = (n: number) => String(n).padStart(2, '0');
 
-/** Hora ("HH:MM") desde la que se puede valorar una charla: poco antes de que acabe. */
+const enMinutos = (hhmm: string) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5));
+
+/** Hora ("HH:MM") desde la que se puede valorar una charla: cuando lleva EVENTO.abreAl de su duración. */
 export function abreA(sesion: Sesion): string {
-  const [h, m] = (sesion.fin ?? sesion.inicio).split(':').map(Number);
-  const total = h * 60 + m + (sesion.fin ? -EVENTO.antes : 25);
+  const inicio = enMinutos(sesion.inicio);
+  const duracion = sesion.fin ? enMinutos(sesion.fin) - inicio : 30; // sin hora de fin se suponen 30 minutos
+  const total = inicio + Math.round(duracion * EVENTO.abreAl);
   return `${dosCifras(Math.floor(total / 60))}:${dosCifras(total % 60)}`;
 }
 

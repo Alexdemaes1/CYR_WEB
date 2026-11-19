@@ -424,14 +424,14 @@ textarea:focus {
   height: 1px;
 }
 
-.carta label:has(input:checked) {
+.carta label.marcada {
   background: var(--carbon);
   color: var(--ticket);
 }
 
-.carta label:has(input:focus-visible),
-.sellos label:has(input:focus-visible),
-.punto label:has(input:focus-visible) {
+.carta label:focus-within,
+.sellos label:focus-within,
+.punto label:focus-within {
   outline: 3px solid var(--mostaza);
   outline-offset: 2px;
 }
@@ -542,17 +542,17 @@ textarea:focus {
   color: var(--carbon);
 }
 
-.sellos label:has(input:checked) {
+.sellos label.marcada {
   background: var(--tinta);
   color: #fff;
   animation: sellar 0.38s cubic-bezier(0.2, 1.6, 0.4, 1);
 }
 
-.sellos label:has(input:checked) .que {
+.sellos label.marcada .que {
   color: #fff;
 }
 
-.sellos:has(input:checked) label:not(:has(input:checked)) {
+.sellos.con-eleccion label:not(.marcada) {
   opacity: 0.5;
 }
 
@@ -642,7 +642,7 @@ textarea:focus {
   cursor: pointer;
 }
 
-.punto label:has(input:checked) {
+.punto label.marcada {
   background: var(--mostaza);
 }
 
